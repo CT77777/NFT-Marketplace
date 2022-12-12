@@ -16,27 +16,13 @@ contract NFTmarketplace is INFTmarketplace {
     IERC20 public USDT;
     IERC20 public USDC;
 
-    struct Transaction {
-        address requestor;
-        address receiver;
-        IERC721 nftRequestor;
-        uint256 nftIdRequestor;
-        IERC721 nftReceiver;
-        uint256 nftIdReceiver;
-        IERC20 tradingToken;
-        uint256 amountRequestor;
-        uint256 amountReceiver;
-        transactionState state;
-    }
+    ExchangeTransaction[] private exchangeTransactions;
+    SellTransaction[] private sellTransactions;
+    BidTransaction[] private bidTransactions;
 
-    enum transactionState {
-        inProgress,
-        completed,
-        revoked
-    }
-
-    Transaction[] private transactions;
-    mapping(address => Transaction[]) userTransaction;
+    mapping(address => uint256[]) userExchangeTransactions;
+    mapping(address => uint256[]) userSellTransactions;
+    mapping(address => uint256[]) userBidTransactions;
 
     constructor(
         IERC721 _utilityNFT,
@@ -62,24 +48,38 @@ contract NFTmarketplace is INFTmarketplace {
         uint256 _amountRequestor,
         uint256 _amountReveiver
     ) external override {
-        if (address(_nftRequestor) != address(0)) {
-            require(
-                _nftIdRequestor <=
-                    IERC721Enumerable(address(_nftRequestor)).totalSupply()
-            );
-            require(_nftRequestor.ownerOf(_nftIdRequestor) == msg.sender);
-        }
+        require(address(_nftRequestor) != address(0), "outNFT address is zero");
+        require(
+            _nftIdRequestor <=
+                IERC721Enumerable(address(_nftRequestor)).totalSupply(),
+            "token Id is invalid for outNFT"
+        );
+        require(
+            _nftRequestor.ownerOf(_nftIdRequestor) == msg.sender,
+            "requestor is not the owner of outNFT"
+        );
 
-        if (address(_nftReceiver) != address(0)) {
-            require(
-                _nftIdReceiver <=
-                    IERC721Enumerable(address(_nftReceiver)).totalSupply()
-            );
-            require(_nftReceiver.ownerOf(_nftIdReceiver) == _receiver);
-        }
+        require(address(_nftReceiver) != address(0), "inNFT address is zero");
+        require(
+            _nftIdReceiver <=
+                IERC721Enumerable(address(_nftReceiver)).totalSupply(),
+            "token Id is invalid for inNFT"
+        );
+        require(
+            _nftReceiver.ownerOf(_nftIdReceiver) == _receiver,
+            "receiver is not the owner of inNFT"
+        );
 
-        transactions.push(
-            Transaction({
+        require(
+            _tradingToken == WETH ||
+                _tradingToken == USDC ||
+                _tradingToken == USDT,
+            "tradingToken is not allowed"
+        );
+
+        exchangeTransactions.push(
+            ExchangeTransaction({
+                transactionId: exchangeTransactions.length,
                 requestor: msg.sender,
                 receiver: _receiver,
                 nftRequestor: _nftRequestor,
@@ -92,6 +92,9 @@ contract NFTmarketplace is INFTmarketplace {
                 state: transactionState.inProgress
             })
         );
+
+        userExchangeTransactions[msg.sender].push(exchangeTransactions.length);
+        userExchangeTransactions[_receiver].push(exchangeTransactions.length);
     }
 
     function applySellTransaction(
@@ -112,7 +115,57 @@ contract NFTmarketplace is INFTmarketplace {
 
     function confirmExchangeTransaction(
         uint256 _transactionId
-    ) external override {}
+    ) external override {
+        ExchangeTransaction storage exchangeTransaction = exchangeTransactions[
+            _transactionId
+        ];
+        require(
+            exchangeTransaction.state == transactionState.inProgress,
+            "transaction is not inProgress"
+        );
+        require(msg.sender == exchangeTransaction.receiver, "Not the receiver");
+        require(
+            exchangeTransaction.nftRequestor.ownerOf(
+                exchangeTransaction.nftIdRequestor
+            ) == exchangeTransaction.requestor,
+            "requestor is not the owner of outNFT"
+        );
+        require(
+            exchangeTransaction.nftReceiver.ownerOf(
+                exchangeTransaction.nftIdReceiver
+            ) == msg.sender,
+            "receiver is not the owner of inNFT"
+        );
+
+        exchangeTransaction.state = transactionState.completed;
+
+        if (exchangeTransaction.amountRequestor != 0) {
+            exchangeTransaction.tradingToken.transferFrom(
+                exchangeTransaction.requestor,
+                msg.sender,
+                exchangeTransaction.amountRequestor
+            );
+        }
+
+        if (exchangeTransaction.amountReceiver != 0) {
+            exchangeTransaction.tradingToken.transferFrom(
+                msg.sender,
+                exchangeTransaction.requestor,
+                exchangeTransaction.amountReceiver
+            );
+        }
+
+        exchangeTransaction.nftRequestor.transferFrom(
+            exchangeTransaction.requestor,
+            msg.sender,
+            exchangeTransaction.nftIdRequestor
+        );
+        exchangeTransaction.nftReceiver.transferFrom(
+            msg.sender,
+            exchangeTransaction.requestor,
+            exchangeTransaction.nftIdReceiver
+        );
+    }
 
     function confirmSellTransaction(uint256 _transactionId) external override {}
 
@@ -120,7 +173,12 @@ contract NFTmarketplace is INFTmarketplace {
 
     function revokeExchangeTransaction(
         uint256 _transactionId
-    ) external override {}
+    ) external override {
+        ExchangeTransaction storage exchangeTransaction = exchangeTransactions[
+            _transactionId
+        ];
+        exchangeTransaction.state = transactionState.revoked;
+    }
 
     function revokeSellTransaction(uint256 _transactionId) external override {}
 
@@ -143,8 +201,10 @@ contract NFTmarketplace is INFTmarketplace {
         external
         view
         override
-        returns (uint256[] memory)
-    {}
+        returns (ExchangeTransaction[] memory)
+    {
+        return exchangeTransactions;
+    }
 
     function getAllSellTransaction()
         external

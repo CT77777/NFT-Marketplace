@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./transactionContent.sol";
 
-interface INFTmarketplace {
+abstract contract INFTmarketplace is transactionContent {
     event appliedTransaction(
         address _requestor,
         address _receiver,
@@ -36,7 +37,7 @@ interface INFTmarketplace {
         IERC20 _tradingToken,
         uint256 _amountRequestor,
         uint256 _amountReveiver
-    ) external;
+    ) external virtual;
 
     function applySellTransaction(
         address _buyer,
@@ -44,7 +45,7 @@ interface INFTmarketplace {
         uint256 _nftIdSell,
         IERC20 _tradingToken,
         uint256 _amountSell
-    ) external;
+    ) external virtual;
 
     function applyBidTransaction(
         address _seller,
@@ -52,25 +53,28 @@ interface INFTmarketplace {
         uint256 _nftIdBid,
         IERC20 _tradingToken,
         uint256 _amountBid
-    ) external;
+    ) external virtual;
 
-    function confirmExchangeTransaction(uint256 _transactionId) external;
+    function confirmExchangeTransaction(
+        uint256 _transactionId
+    ) external virtual;
 
-    function confirmSellTransaction(uint256 _transactionId) external;
+    function confirmSellTransaction(uint256 _transactionId) external virtual;
 
-    function confirmBidTransaction(uint256 _transactionId) external;
+    function confirmBidTransaction(uint256 _transactionId) external virtual;
 
-    function revokeExchangeTransaction(uint256 _transactionId) external;
+    function revokeExchangeTransaction(uint256 _transactionId) external virtual;
 
-    function revokeSellTransaction(uint256 _transactionId) external;
+    function revokeSellTransaction(uint256 _transactionId) external virtual;
 
-    function revokeBidTransaction(uint256 _transactionId) external;
+    function revokeBidTransaction(uint256 _transactionId) external virtual;
 
     function getUserTransaction(
         address _user
     )
         external
         view
+        virtual
         returns (
             uint256[] memory exchangeTransaction,
             uint256[] memory sellTransaction,
@@ -80,9 +84,18 @@ interface INFTmarketplace {
     function getAllExchangeTransaction()
         external
         view
+        virtual
+        returns (ExchangeTransaction[] memory);
+
+    function getAllSellTransaction()
+        external
+        view
+        virtual
         returns (uint256[] memory);
 
-    function getAllSellTransaction() external view returns (uint256[] memory);
-
-    function getAllBidTransaction() external view returns (uint256[] memory);
+    function getAllBidTransaction()
+        external
+        view
+        virtual
+        returns (uint256[] memory);
 }
