@@ -27,24 +27,62 @@ interface INFTmarketplace {
         IERC20 indexed _tradingToken
     );
 
-    function applyTransaction(
+    function applyExchangeTransaction(
         address _receiver,
-        IERC721 nftRequestor,
-        uint256 nftIdRequestor,
-        IERC721 nftReceiver,
-        uint256 nftIdReceiver,
-        IERC20 tradingToken,
-        uint256 amountRequestor,
-        uint256 amountReveiver
+        IERC721 _nftRequestor,
+        uint256 _nftIdRequestor,
+        IERC721 _nftReceiver,
+        uint256 _nftIdReceiver,
+        IERC20 _tradingToken,
+        uint256 _amountRequestor,
+        uint256 _amountReveiver
     ) external;
 
-    function confirmTransaction(uint256 _transactionId) external;
+    function applySellTransaction(
+        address _buyer,
+        IERC721 _nftSell,
+        uint256 _nftIdSell,
+        IERC20 _tradingToken,
+        uint256 _amountSell
+    ) external;
 
-    function revokeTransaction(uint256 _transactionId) external;
+    function applyBidTransaction(
+        address _seller,
+        IERC721 _nftBid,
+        uint256 _nftIdBid,
+        IERC20 _tradingToken,
+        uint256 _amountBid
+    ) external;
+
+    function confirmExchangeTransaction(uint256 _transactionId) external;
+
+    function confirmSellTransaction(uint256 _transactionId) external;
+
+    function confirmBidTransaction(uint256 _transactionId) external;
+
+    function revokeExchangeTransaction(uint256 _transactionId) external;
+
+    function revokeSellTransaction(uint256 _transactionId) external;
+
+    function revokeBidTransaction(uint256 _transactionId) external;
 
     function getUserTransaction(
         address _user
-    ) external returns (uint256[] memory);
+    )
+        external
+        view
+        returns (
+            uint256[] memory exchangeTransaction,
+            uint256[] memory sellTransaction,
+            uint256[] memory bidTransaction
+        );
 
-    function getAllTransaction() external returns (uint256[] memory);
+    function getAllExchangeTransaction()
+        external
+        view
+        returns (uint256[] memory);
+
+    function getAllSellTransaction() external view returns (uint256[] memory);
+
+    function getAllBidTransaction() external view returns (uint256[] memory);
 }
