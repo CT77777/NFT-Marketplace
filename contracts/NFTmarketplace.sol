@@ -24,6 +24,16 @@ contract NFTmarketplace is INFTmarketplace {
     mapping(address => uint256[]) userSellTransactions;
     mapping(address => uint256[]) userBidTransactions;
 
+    modifier tradingTokenCheck(IERC20 _tradingToken) {
+        require(
+            _tradingToken == WETH ||
+                _tradingToken == USDT ||
+                _tradingToken == USDC,
+            "trading token is not allowed"
+        );
+        _;
+    }
+
     constructor(
         IERC721 _utilityNFT,
         uint256 _charge,
@@ -47,7 +57,7 @@ contract NFTmarketplace is INFTmarketplace {
         IERC20 _tradingToken,
         uint256 _amountRequestor,
         uint256 _amountReveiver
-    ) external override {
+    ) external override tradingTokenCheck(_tradingToken) {
         require(address(_nftRequestor) != address(0), "outNFT address is zero");
         require(
             _nftIdRequestor <=
@@ -68,13 +78,6 @@ contract NFTmarketplace is INFTmarketplace {
         require(
             _nftReceiver.ownerOf(_nftIdReceiver) == _receiver,
             "receiver is not the owner of inNFT"
-        );
-
-        require(
-            _tradingToken == WETH ||
-                _tradingToken == USDC ||
-                _tradingToken == USDT,
-            "tradingToken is not allowed"
         );
 
         exchangeTransactions.push(
@@ -103,7 +106,7 @@ contract NFTmarketplace is INFTmarketplace {
         uint256 _nftIdSell,
         IERC20 _tradingToken,
         uint256 _amountSell
-    ) external override {
+    ) external override tradingTokenCheck(_tradingToken) {
         require(address(_nftSell) != address(0), "Selling NFT address is zero");
         require(
             _nftIdSell <= IERC721Enumerable(address(_nftSell)).totalSupply(),
@@ -135,12 +138,27 @@ contract NFTmarketplace is INFTmarketplace {
     }
 
     function applyBidTransaction(
-        address _seller,
         IERC721 _nftBid,
-        uint256 _nftIdBid,
         IERC20 _tradingToken,
         uint256 _amountBid
-    ) external override {}
+    ) external override tradingTokenCheck(_tradingToken) {
+        require(address(_nftBid) != address(0), "bid NFT address is zero");
+        require(
+            _tradingToken.balanceOf(msg.sender) >= _amountBid,
+            "Not enough balance of trading token"
+        );
+
+        bidTransactions.push(
+            BidTransaction({
+                transactionId: bidTransactions.length,
+                requestor: msg.sender,
+                nftBid: _nftBid,
+                tradingToken: _tradingToken,
+                amountBid: _amountBid,
+                state: transactionState.inProgress
+            })
+        );
+    }
 
     function confirmExchangeTransaction(
         uint256 _transactionId
@@ -236,7 +254,39 @@ contract NFTmarketplace is INFTmarketplace {
         );
     }
 
-    function confirmBidTransaction(uint256 _transactionId) external override {}
+    function confirmBidTransaction(
+        uint256 _transactionId,
+        uint256 _nftIdBid
+    ) external override {
+        BidTransaction storage bidTransaction = bidTransactions[_transactionId];
+        require(
+            bidTransaction.state == transactionState.inProgress,
+            "transaction is invalid"
+        );
+        require(
+            bidTransaction.nftBid.balanceOf(msg.sender) > 0,
+            "Don't have any bid NFT"
+        );
+        require(
+            bidTransaction.tradingToken.balanceOf(bidTransaction.requestor) >=
+                bidTransaction.amountBid,
+            "Bider have'nt enough balance of trading token"
+        );
+
+        bidTransaction.state = transactionState.completed;
+
+        bidTransaction.tradingToken.transferFrom(
+            bidTransaction.requestor,
+            msg.sender,
+            bidTransaction.amountBid
+        );
+
+        bidTransaction.nftBid.transferFrom(
+            msg.sender,
+            bidTransaction.requestor,
+            _nftIdBid
+        );
+    }
 
     function revokeExchangeTransaction(
         uint256 _transactionId
@@ -248,6 +298,7 @@ contract NFTmarketplace is INFTmarketplace {
             exchangeTransaction.state == transactionState.inProgress,
             "transaction is already completed or revoked"
         );
+        require(msg.sender == exchangeTransaction.requestor, "Only requestor");
         exchangeTransaction.state = transactionState.revoked;
     }
 
@@ -259,10 +310,19 @@ contract NFTmarketplace is INFTmarketplace {
             sellTransaction.state == transactionState.inProgress,
             "transaction is already completed or revoked"
         );
+        require(msg.sender == sellTransaction.requestor, "Only requestor");
         sellTransaction.state = transactionState.revoked;
     }
 
-    function revokeBidTransaction(uint256 _transactionId) external override {}
+    function revokeBidTransaction(uint256 _transactionId) external override {
+        BidTransaction storage bidTransaction = bidTransactions[_transactionId];
+        require(
+            bidTransaction.state == transactionState.inProgress,
+            "transaction is already completed or revoked"
+        );
+        require(msg.sender == bidTransaction.requestor, "Only requestor");
+        bidTransaction.state = transactionState.revoked;
+    }
 
     function getUserTransaction(
         address _user
@@ -300,5 +360,7 @@ contract NFTmarketplace is INFTmarketplace {
         view
         override
         returns (BidTransaction[] memory)
-    {}
+    {
+        return bidTransactions;
+    }
 }

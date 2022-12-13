@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./transactionContent.sol";
 
-abstract contract INFTmarketplace is transactionContent {
+interface INFTmarketplace is transactionContent {
     event appliedTransaction(
         address _requestor,
         address _receiver,
@@ -37,7 +37,7 @@ abstract contract INFTmarketplace is transactionContent {
         IERC20 _tradingToken,
         uint256 _amountRequestor,
         uint256 _amountReveiver
-    ) external virtual;
+    ) external;
 
     function applySellTransaction(
         address _buyer,
@@ -45,36 +45,34 @@ abstract contract INFTmarketplace is transactionContent {
         uint256 _nftIdSell,
         IERC20 _tradingToken,
         uint256 _amountSell
-    ) external virtual;
+    ) external;
 
     function applyBidTransaction(
-        address _seller,
         IERC721 _nftBid,
-        uint256 _nftIdBid,
         IERC20 _tradingToken,
         uint256 _amountBid
-    ) external virtual;
+    ) external;
 
-    function confirmExchangeTransaction(
-        uint256 _transactionId
-    ) external virtual;
+    function confirmExchangeTransaction(uint256 _transactionId) external;
 
-    function confirmSellTransaction(uint256 _transactionId) external virtual;
+    function confirmSellTransaction(uint256 _transactionId) external;
 
-    function confirmBidTransaction(uint256 _transactionId) external virtual;
+    function confirmBidTransaction(
+        uint256 _transactionId,
+        uint256 _nftIdBid
+    ) external;
 
-    function revokeExchangeTransaction(uint256 _transactionId) external virtual;
+    function revokeExchangeTransaction(uint256 _transactionId) external;
 
-    function revokeSellTransaction(uint256 _transactionId) external virtual;
+    function revokeSellTransaction(uint256 _transactionId) external;
 
-    function revokeBidTransaction(uint256 _transactionId) external virtual;
+    function revokeBidTransaction(uint256 _transactionId) external;
 
     function getUserTransaction(
         address _user
     )
         external
         view
-        virtual
         returns (
             uint256[] memory exchangeTransaction,
             uint256[] memory sellTransaction,
@@ -84,18 +82,15 @@ abstract contract INFTmarketplace is transactionContent {
     function getAllExchangeTransaction()
         external
         view
-        virtual
         returns (ExchangeTransaction[] memory);
 
     function getAllSellTransaction()
         external
         view
-        virtual
         returns (SellTransaction[] memory);
 
     function getAllBidTransaction()
         external
         view
-        virtual
         returns (BidTransaction[] memory);
 }

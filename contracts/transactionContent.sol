@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./transactionStateReporter.sol";
 
-contract transactionContent is transactionStateReporter {
+interface transactionContent is transactionStateReporter {
     struct ExchangeTransaction {
         uint256 transactionId;
         address requestor;
@@ -35,9 +35,7 @@ contract transactionContent is transactionStateReporter {
     struct BidTransaction {
         uint256 transactionId;
         address requestor;
-        address seller;
         IERC721 nftBid;
-        uint256 nftIdBid;
         IERC20 tradingToken;
         uint256 amountBid;
         transactionState state;
