@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import "./INFTmarketplace.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /// @title NFT marketplace for NFT exchanging and trading
 /// @author CT Chan
 /// @notice You can use this contract to exchange or trade NFT by WETH/ USDT/ USDC and with few charge
 /// @custom:murmurcats MMC holder own zero charge utility
-contract NFTmarketplace is INFTmarketplace {
+contract NFTmarketplace is INFTmarketplace, ERC20 {
     IERC721 public utilityNFT;
     uint256 public charge;
 
@@ -16,9 +17,9 @@ contract NFTmarketplace is INFTmarketplace {
     IERC20 public USDT;
     IERC20 public USDC;
 
-    ExchangeTransaction[] private exchangeTransactions;
-    SellTransaction[] private sellTransactions;
-    BidTransaction[] private bidTransactions;
+    ExchangeTransaction[] public exchangeTransactions;
+    SellTransaction[] public sellTransactions;
+    BidTransaction[] public bidTransactions;
 
     mapping(address => uint256[]) userExchangeTransactions;
     mapping(address => uint256[]) userSellTransactions;
@@ -34,13 +35,21 @@ contract NFTmarketplace is INFTmarketplace {
         _;
     }
 
+    modifier nonReentrancy() {
+        bool lock;
+        require(!lock, "nonReentrancy");
+        lock = true;
+        _;
+        lock = false;
+    }
+
     constructor(
         IERC721 _utilityNFT,
         uint256 _charge,
         IERC20 _WETH,
         IERC20 _USDT,
         IERC20 _USDC
-    ) {
+    ) ERC20("Fractional MurMurCats", "FMMC") {
         utilityNFT = _utilityNFT;
         charge = _charge;
         WETH = _WETH;
@@ -324,18 +333,72 @@ contract NFTmarketplace is INFTmarketplace {
         bidTransaction.state = transactionState.revoked;
     }
 
+    function fragment(uint256[] calldata _utilityNFTid) external override {
+        uint256 amountNFT = _utilityNFTid.length;
+        for (uint256 i = 0; i < amountNFT; i++) {
+            require(
+                _utilityNFTid[i] <=
+                    IERC721Enumerable(address(utilityNFT)).totalSupply(),
+                "token Id is invalid"
+            );
+            require(
+                msg.sender == utilityNFT.ownerOf(_utilityNFTid[i]),
+                "Not owner of the token"
+            );
+            utilityNFT.transferFrom(
+                msg.sender,
+                address(this),
+                _utilityNFTid[i]
+            );
+        }
+        uint256 amountFragments = amountNFT * 5 ether;
+        _mint(msg.sender, amountFragments);
+    }
+
+    function recombine(
+        uint256[] calldata _utilityNFTid
+    ) external override nonReentrancy {
+        uint256 amountNFT = _utilityNFTid.length;
+        uint256 amountFragments = amountNFT * 5 ether;
+        require(
+            balanceOf(msg.sender) >= amountFragments,
+            "Not enough balance of the fractional NFT"
+        );
+
+        for (uint256 i = 0; i < amountNFT; i++) {
+            require(
+                _utilityNFTid[i] <=
+                    IERC721Enumerable(address(utilityNFT)).totalSupply(),
+                "token Id is invalid"
+            );
+            require(
+                address(this) == utilityNFT.ownerOf(_utilityNFTid[i]),
+                "Valut does'nt have this token Id"
+            );
+            utilityNFT.transferFrom(
+                address(this),
+                msg.sender,
+                _utilityNFTid[i]
+            );
+        }
+
+        _burn(msg.sender, amountFragments);
+    }
+
     function getUserTransaction(
         address _user
     )
         external
         view
         override
-        returns (
-            uint256[] memory exchangeTransaction,
-            uint256[] memory sellTransaction,
-            uint256[] memory bidTransaction
-        )
-    {}
+        returns (uint256[] memory, uint256[] memory, uint256[] memory)
+    {
+        return (
+            userExchangeTransactions[_user],
+            userSellTransactions[_user],
+            userBidTransactions[_user]
+        );
+    }
 
     function getAllExchangeTransaction()
         external
