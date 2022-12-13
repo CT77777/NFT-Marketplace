@@ -22,6 +22,7 @@ contract transactionContent is transactionStateReporter {
     }
 
     struct SellTransaction {
+        uint256 transactionId;
         address requestor;
         address buyer;
         IERC721 nftSell;
@@ -32,6 +33,7 @@ contract transactionContent is transactionStateReporter {
     }
 
     struct BidTransaction {
+        uint256 transactionId;
         address requestor;
         address seller;
         IERC721 nftBid;

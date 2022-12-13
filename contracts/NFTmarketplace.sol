@@ -103,7 +103,36 @@ contract NFTmarketplace is INFTmarketplace {
         uint256 _nftIdSell,
         IERC20 _tradingToken,
         uint256 _amountSell
-    ) external override {}
+    ) external override {
+        require(address(_nftSell) != address(0), "Selling NFT address is zero");
+        require(
+            _nftIdSell <= IERC721Enumerable(address(_nftSell)).totalSupply(),
+            "token Id is invalid in selling NFT"
+        );
+        require(
+            _nftSell.ownerOf(_nftIdSell) == msg.sender,
+            "Not owner of selling NFT"
+        );
+
+        sellTransactions.push(
+            SellTransaction({
+                transactionId: sellTransactions.length,
+                requestor: msg.sender,
+                buyer: _buyer,
+                nftSell: _nftSell,
+                nftIdSell: _nftIdSell,
+                tradingToken: _tradingToken,
+                amountSell: _amountSell,
+                state: transactionState.inProgress
+            })
+        );
+
+        userSellTransactions[msg.sender].push(sellTransactions.length);
+
+        if (_buyer != address(0)) {
+            userSellTransactions[_buyer].push(sellTransactions.length);
+        }
+    }
 
     function applyBidTransaction(
         address _seller,
@@ -167,7 +196,45 @@ contract NFTmarketplace is INFTmarketplace {
         );
     }
 
-    function confirmSellTransaction(uint256 _transactionId) external override {}
+    function confirmSellTransaction(uint256 _transactionId) external override {
+        SellTransaction storage sellTransaction = sellTransactions[
+            _transactionId
+        ];
+        require(
+            sellTransaction.state == transactionState.inProgress,
+            "transaction is invalid"
+        );
+        require(
+            sellTransaction.nftSell.ownerOf(sellTransaction.nftIdSell) ==
+                sellTransaction.requestor,
+            "Requestor is not owner of selling NFT"
+        );
+        require(
+            sellTransaction.tradingToken.balanceOf(msg.sender) >=
+                sellTransaction.amountSell,
+            "Not enough tranding token balance"
+        );
+        if (sellTransaction.buyer != address(0)) {
+            require(
+                msg.sender == sellTransaction.buyer,
+                "Not the specific buyer"
+            );
+        }
+
+        sellTransaction.state = transactionState.completed;
+
+        sellTransaction.tradingToken.transferFrom(
+            msg.sender,
+            sellTransaction.requestor,
+            sellTransaction.amountSell
+        );
+
+        sellTransaction.nftSell.transferFrom(
+            sellTransaction.requestor,
+            msg.sender,
+            sellTransaction.nftIdSell
+        );
+    }
 
     function confirmBidTransaction(uint256 _transactionId) external override {}
 
@@ -177,10 +244,23 @@ contract NFTmarketplace is INFTmarketplace {
         ExchangeTransaction storage exchangeTransaction = exchangeTransactions[
             _transactionId
         ];
+        require(
+            exchangeTransaction.state == transactionState.inProgress,
+            "transaction is already completed or revoked"
+        );
         exchangeTransaction.state = transactionState.revoked;
     }
 
-    function revokeSellTransaction(uint256 _transactionId) external override {}
+    function revokeSellTransaction(uint256 _transactionId) external override {
+        SellTransaction storage sellTransaction = sellTransactions[
+            _transactionId
+        ];
+        require(
+            sellTransaction.state == transactionState.inProgress,
+            "transaction is already completed or revoked"
+        );
+        sellTransaction.state = transactionState.revoked;
+    }
 
     function revokeBidTransaction(uint256 _transactionId) external override {}
 
@@ -210,13 +290,15 @@ contract NFTmarketplace is INFTmarketplace {
         external
         view
         override
-        returns (uint256[] memory)
-    {}
+        returns (SellTransaction[] memory)
+    {
+        return sellTransactions;
+    }
 
     function getAllBidTransaction()
         external
         view
         override
-        returns (uint256[] memory)
+        returns (BidTransaction[] memory)
     {}
 }

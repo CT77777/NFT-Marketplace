@@ -91,11 +91,11 @@ abstract contract INFTmarketplace is transactionContent {
         external
         view
         virtual
-        returns (uint256[] memory);
+        returns (SellTransaction[] memory);
 
     function getAllBidTransaction()
         external
         view
         virtual
-        returns (uint256[] memory);
+        returns (BidTransaction[] memory);
 }
