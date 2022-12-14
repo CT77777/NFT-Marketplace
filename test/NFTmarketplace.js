@@ -14,10 +14,6 @@ describe("NFT marketplace", function () {
     weth,
     usdc,
     usdt;
-  //   const weth = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
-  //   const usdc = "0x9FD21bE27A2B059a288229361E2fA632D8D2d074";
-  //   const usdt = "0x881174bae5bfa7cd80cc802dafc8213d4485e018";
-  //   const utilityNFT = "0x2e9d58cCD2C570a087B7a8AbdDe1f55F3B7b87c4";
 
   async function deployTestContracts() {
     const [owner, user1, user2] = await ethers.getSigners();
@@ -261,6 +257,9 @@ describe("NFT marketplace", function () {
           ethers.utils.parseUnits("50", 18),
           weth.address
         );
+      expect(await weth.balanceOf(user1.address)).to.gt(
+        ethers.utils.parseUnits("100", 18)
+      );
     });
   });
 });
