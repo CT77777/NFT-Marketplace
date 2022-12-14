@@ -335,7 +335,7 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
       );
       utilityNFT.transferFrom(msg.sender, address(this), _utilityNFTid[i]);
     }
-    uint256 amountFragments = amountNFT * 5 ether;
+    uint256 amountFragments = amountNFT * 100 ether;
     _mint(msg.sender, amountFragments);
   }
 
