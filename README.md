@@ -1,13 +1,18 @@
-# Sample Hardhat Project
+# NFT Marketplace with fragment NFT feature
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+## Framwork
 
-Try running some of the following tasks:
+https://www.figma.com/file/H8ZxOxT2VLByt4a60Hd9sZ/NFT-Marketplace?node-id=0%3A1&t=jd80KqwIiagCl0ka-3
+
+## Local Develpement
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
+git clone git@github.com:CT77777/NFTmarketplace.git
+npm install
+```
+
+## Function Test
+
+```shell
+npx hardhat test test/NFTmarketplace.js
 ```
