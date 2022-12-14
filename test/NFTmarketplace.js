@@ -240,6 +240,9 @@ describe("NFT marketplace", function () {
       await liquidityVault
         .connect(owner)
         .addLiquidity(ethers.utils.parseUnits("1000", 18));
+      expect(await weth.balanceOf(liquidityVault.address)).to.equal(
+        ethers.utils.parseUnits("50", 18)
+      );
     });
 
     it("user1 get WETH by swap FMMC token", async function () {
@@ -255,7 +258,7 @@ describe("NFT marketplace", function () {
         .connect(user1)
         .swap(
           nftMarketplace.address,
-          ethers.utils.parseUnits("100", 18),
+          ethers.utils.parseUnits("50", 18),
           weth.address
         );
     });

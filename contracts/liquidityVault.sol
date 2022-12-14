@@ -62,7 +62,7 @@ contract liquidityVault is ILiquidityVault, ERC20 {
     ) * ((100 * 100000 - (chargePercent * 100000)) / 100);
 
     uint256 actualAmountTokenOut = amountTokenOutCalculated / 100000;
-    _tokenOut.transferFrom(address(this), msg.sender, actualAmountTokenOut);
+    _tokenOut.transfer(msg.sender, actualAmountTokenOut);
 
     uint256 tokenInReserveCurrent = _tokenIn.balanceOf(address(this));
     uint256 tokenOutReserveCurrent = _tokenOut.balanceOf(address(this));
