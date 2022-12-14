@@ -86,9 +86,11 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
       "receiver is not the owner of inNFT"
     );
 
+    uint256 _transactionId = exchangeTransactions.length;
+
     exchangeTransactions.push(
       ExchangeTransaction({
-        transactionId: exchangeTransactions.length,
+        transactionId: _transactionId,
         requestor: msg.sender,
         receiver: _receiver,
         nftRequestor: _nftRequestor,
@@ -102,8 +104,8 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
       })
     );
 
-    userExchangeTransactions[msg.sender].push(exchangeTransactions.length);
-    userExchangeTransactions[_receiver].push(exchangeTransactions.length);
+    userExchangeTransactions[msg.sender].push(_transactionId);
+    userExchangeTransactions[_receiver].push(_transactionId);
   }
 
   function applySellTransaction(
@@ -122,10 +124,11 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
       _nftSell.ownerOf(_nftIdSell) == msg.sender,
       "Not owner of selling NFT"
     );
+    uint256 _transactionId = sellTransactions.length;
 
     sellTransactions.push(
       SellTransaction({
-        transactionId: sellTransactions.length,
+        transactionId: _transactionId,
         requestor: msg.sender,
         buyer: _buyer,
         nftSell: _nftSell,
@@ -136,10 +139,10 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
       })
     );
 
-    userSellTransactions[msg.sender].push(sellTransactions.length);
+    userSellTransactions[msg.sender].push(_transactionId);
 
     if (_buyer != address(0)) {
-      userSellTransactions[_buyer].push(sellTransactions.length);
+      userSellTransactions[_buyer].push(_transactionId);
     }
   }
 
@@ -154,9 +157,11 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
       "Not enough balance of trading token"
     );
 
+    uint256 _transactionId = bidTransactions.length;
+
     bidTransactions.push(
       BidTransaction({
-        transactionId: bidTransactions.length,
+        transactionId: _transactionId,
         requestor: msg.sender,
         nftBid: _nftBid,
         tradingToken: _tradingToken,
@@ -164,6 +169,7 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
         state: transactionState.inProgress
       })
     );
+    userBidTransactions[msg.sender].push(_transactionId);
   }
 
   function confirmExchangeTransaction(
@@ -343,7 +349,7 @@ contract NFTmarketplace is INFTmarketplace, ERC20 {
     uint256[] calldata _utilityNFTid
   ) external override nonReentrancy {
     uint256 amountNFT = _utilityNFTid.length;
-    uint256 amountFragments = amountNFT * 5 ether;
+    uint256 amountFragments = amountNFT * 100 ether;
     require(
       balanceOf(msg.sender) >= amountFragments,
       "Not enough balance of the fractional NFT"

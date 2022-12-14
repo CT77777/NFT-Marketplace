@@ -19,7 +19,7 @@ contract liquidityVault is ILiquidityVault, ERC20 {
     IERC20 _FRAGMENTS,
     IERC20 _WETH,
     uint256 _chargePercent
-  ) ERC20("Liquidity Provider token", "LPT") {
+  ) ERC20("amountLPT Provider token", "LPT") {
     FRAGMENTS = _FRAGMENTS;
     WETH = _WETH;
     chargePercent = _chargePercent;
@@ -56,11 +56,12 @@ contract liquidityVault is ILiquidityVault, ERC20 {
       tokenInReserve;
 
     // derive from x * y = k
-    uint256 amountTokenOutCalculated = ((tokenOutReserve *
-      actualAmountTokenIn) / (tokenInReserve + actualAmountTokenIn)) *
-      ((type(uint32).max - (chargePercent * type(uint32).max)) / 100);
+    uint256 amountTokenOutCalculated = (
+      ((tokenOutReserve * actualAmountTokenIn) /
+        (tokenInReserve + actualAmountTokenIn))
+    ) * ((100 * 100000 - (chargePercent * 100000)) / 100);
 
-    uint256 actualAmountTokenOut = amountTokenOutCalculated / type(uint32).max;
+    uint256 actualAmountTokenOut = amountTokenOutCalculated / 100000;
     _tokenOut.transferFrom(address(this), msg.sender, actualAmountTokenOut);
 
     uint256 tokenInReserveCurrent = _tokenIn.balanceOf(address(this));
@@ -77,8 +78,9 @@ contract liquidityVault is ILiquidityVault, ERC20 {
 
   function addLiquidity(uint256 _amountInFRAGMENTS) external override {
     require(_amountInFRAGMENTS != 0, "Input FRAGMENTS amount is zero");
+
     if (totalSupply() == 0) {
-      uint256 realPriceNFT = uint256(getLatestPrice()); //need safe transfer
+      uint256 realPriceNFT = 5 ether; //need safe transfer
       uint256 amountInFRAGMENTS = _amountInFRAGMENTS;
       uint256 WETHInRatio = (amountInFRAGMENTS * type(uint32).max) /
         (100 ether);
@@ -87,8 +89,9 @@ contract liquidityVault is ILiquidityVault, ERC20 {
         WETH.balanceOf(msg.sender) >= amountInWETH,
         "Not enough WETH balance"
       );
-      uint256 liquidity = Math.sqrt(amountInFRAGMENTS * amountInWETH);
-      _mint(msg.sender, liquidity);
+
+      uint256 amountLPT = Math.sqrt(amountInFRAGMENTS * amountInWETH);
+      _mint(msg.sender, amountLPT);
       FRAGMENTS.transferFrom(msg.sender, address(this), amountInFRAGMENTS);
       WETH.transferFrom(msg.sender, address(this), amountInWETH);
     } else {
@@ -99,9 +102,13 @@ contract liquidityVault is ILiquidityVault, ERC20 {
       uint256 amountInWETHCalcualted = amountInFRAGMENTS *
         ((reserveWETH * type(uint32).max) / reserveFRAGMENTS);
       uint256 amountInWETH = amountInWETHCalcualted / type(uint32).max;
+      require(
+        WETH.balanceOf(msg.sender) >= amountInWETH,
+        "Not enough WETH balance"
+      );
 
-      uint256 liquidity = Math.sqrt(amountInFRAGMENTS * amountInWETH);
-      _mint(msg.sender, liquidity);
+      uint256 amountLPT = Math.sqrt(amountInFRAGMENTS * amountInWETH);
+      _mint(msg.sender, amountLPT);
       FRAGMENTS.transferFrom(msg.sender, address(this), amountInFRAGMENTS);
       WETH.transferFrom(msg.sender, address(this), amountInWETH);
     }
