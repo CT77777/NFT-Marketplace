@@ -1,6 +1,6 @@
 # NFT Marketplace with fragment NFT feature
 
-## Framwork
+## Framework
 
 https://www.figma.com/file/H8ZxOxT2VLByt4a60Hd9sZ/NFT-Marketplace?node-id=0%3A1&t=jd80KqwIiagCl0ka-3
 
